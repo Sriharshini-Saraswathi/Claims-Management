@@ -1,0 +1,35 @@
+version: 0.2
+phases:
+  install:
+    runtime-versions:
+      docker: 19
+  pre_build:
+    commands:
+    - echo Logging in to Amazon ECR...
+    - aws --version
+    - aws ecr get-login-password | docker login --username AWS --password-stdin 222512976514.dkr.ecr.ap-northeast-1.amazonaws.com
+  build:
+    commands:
+    - echo Build started on `date`
+    - echo Building Java
+    - cd member-service
+    - mvn compile
+    - mvn package -DskipTests
+    - docker --version
+    - echo Building the docker image..
+    - docker build -t member-service .
+    - echo Checking docker image member-service
+    - docker images --filter reference=member-service
+    - docker tag member-service 222512976514.dkr.ecr.ap-northeast-1.amazonaws.com/claim_ecr_repository:member-service
+    - echo Checking tag added before the docker image
+    - docker images
+  post_build:
+    commands:
+    - echo Build completed on `date`
+    - echo Pushing docker image
+    - docker push 222512976514.dkr.ecr.ap-northeast-1.amazonaws.com/claim_ecr_repository
+    - echo Writting definition file
+    - printf '[{"name":"claim-member-container-935172","imageUri":"%s"}]' 222512976514.dkr.ecr.ap-northeast-1.amazonaws.com/claim_ecr_repository:member-service > imagedefinitions.json
+artifacts:
+  files:
+  - member-service/imagedefinitions.json
